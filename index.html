@@ -271,7 +271,7 @@ async function openForm(k,o){const m=S.b.mods.find(x=>x.k===k),bk=()=>openSerial
 async function save(){const F=S.fm,o=S.cur,k=F.m.k,b=$('#sv');b.classList.add('ld');
  try{const r=F.row,j=await api({a:'save',m:k,id:r._id,sr:o.Kode_Serial,v:F.V,first:!!F.m.dt&&!r[F.m.dt]});
   const c=S.mod[k];if(c){const i=c.rows.findIndex(x=>x[x.length-1]===j.row[j.row.length-1]);if(i>=0)c.rows[i]=j.row}
-  if(MD[k])o[MD[k][0]]=F.V.Status;else{o['No Release Note']=F.V['No Release Note'];o['Disetujui QC Manager']=F.V['Disetujui QC Manager']}
+  if(MD[k])o[MD[k][0]]=F.V.Status;else{o['No Release Note']=F.V['No Release Note']}
   toast('Tersimpan ✓');openSerial(o,S.sb);draw();loadFI().then(draw).catch(()=>{})}
  catch(e){toast(e.message,1);b.classList.remove('ld')}}
 
@@ -292,10 +292,15 @@ function tree(){const f=S.f,A=S.fi.filter(o=>(!f.k||o.k===f.k)&&(!f.p||o.Kode_Pr
  return h}
 
 // ---------- Report Final Inspection (PDF / print) ----------
+const wk=v=>v?String(v).replace(/^(\d{4})-(\d\d)-(\d\d)/,'$3/$2/$1').replace(/ 00:00(:00)?$/,'').slice(0,16):'';
+// QR dibuat di browser (qrcode-generator 1.4.4, dimuat sekali saat cetak); jika gagal dimuat, laporan menampilkan teks link sebagai cadangan
+const qrLib=()=>['https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js','https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js'].reduce((p,u)=>p.then(()=>window.qrcode||new Promise(r=>{const s=document.createElement('script');s.src=u;s.onload=s.onerror=()=>r();document.head.appendChild(s)})),Promise.resolve());
+const qrSvg=t=>{try{const q=qrcode(0,'M');q.addData(String(t));q.make();const n=q.getModuleCount();let d='';for(let r=0;r<n;r++)for(let c=0;c<n;c++)if(q.isDark(r,c))d+='M'+c+' '+r+'h1v1h-1z';return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-2 -2 ${n+4} ${n+4}" shape-rendering="crispEdges"><rect x="-2" y="-2" width="${n+4}" height="${n+4}" fill="#fff"/><path d="${d}"/></svg>`}catch(e){return ''}};
 async function rep(o){const w=window.open('','_blank');if(!w)return toast('Izinkan pop-up untuk cetak',1);
  w.document.write('<body style="font:15px sans-serif;padding:24px">Menyiapkan report…</body>');
  try{const ms=S.b.mods.filter(m=>MD[m.k]);
   await Promise.all(ms.map(async m=>{if(!S.mod[m.k])S.mod[m.k]=await api({a:'list',m:m.k})}));
+  await qrLib();
   const B=S.b,n=new Date(),logo=new URL('MSB_Logo.png',location.href).href,hs=o['Hasil Akhir']||'Belum lengkap',
   tg=n.toLocaleDateString('id-ID',{day:'numeric',month:'long',year:'numeric'})+', '+n.toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit',hour12:false}).replace('.',':'),
   sc=s=>({ok:'g',ng:'r',na:'n',wr:'a'}[cls(s)]||'z'),pill=s=>`<span class="pl2 ${sc(s)}">${esc(s||'Belum diinspeksi')}</span>`,
@@ -307,8 +312,8 @@ async function rep(o){const w=window.open('','_blank');if(!w)return toast('Izink
    for(let j=0;j<fs.length;j+=2)t+='<tr>'+[fs[j],fs[j+1]].map(f=>f?`<th>${esc(f[0])}</th><td>${esc(fv(f,x.r[f[0]]))}</td>`:'<th></th><td></td>').join('')+'</tr>';
    const nt=x.r.Catatan&&x.r.Catatan!=='-'?`<div class=nt>Catatan: ${esc(x.r.Catatan)}</div>`:'';
    return `<div class=sec><h4>${i+1}. ${MD[x.m.k][2]} ${pill(x.r.Status)}</h4>${t?`<table class=kv>${t}</table>`:'<div class=nt>Belum ada data pemeriksaan.</div>'}${nt}</div>`}).join(''),
-  ap=o['Disetujui QC Manager']||'',ins=o.Inspector||B.u.insp,fn=o.Catatan&&o.Catatan!=='-'?o.Catatan:'',
-  sg=(r,nm,im,sub)=>`<div class=sg><small>${r}</small><div class=im>${im?`<img src="${esc(im)}" onerror="this.style.display='none'">`:''}</div><b>${esc(nm||'..............................')}</b><span>${sub}</span></div>`,
+  ap=o['Disetujui Oleh (Nama)']||'',ast=o['Disetujui Oleh (Status)']||'',at=wk(o['Disetujui Oleh (Tanggal)']),al=ap?o['Disetujui Oleh (TTD)']||'':'',ins=B.u.insp||B.u.u,fn=o.Catatan&&o.Catatan!=='-'?o.Catatan:'',
+  sg=(r,nm,lk,sub,tm)=>`<div class=sg><small>${r}</small><div class=im>${lk?qrSvg(lk)||`<small class=lk>${esc(lk)}</small>`:''}</div><b>${esc(nm||'..............................')}</b><span>${sub}</span>${tm?`<span>${esc(tm)}</span>`:''}</div>`,
   css=`@page{size:A4;margin:13mm 12mm}*{box-sizing:border-box}body{margin:0;font:11.5px/1.5 'Manrope','Segoe UI',Arial,sans-serif;color:#22303C;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 .hd{display:flex;align-items:center;gap:16px;padding-bottom:12px;border-bottom:3px solid #35566E;position:relative}.hd:after{content:'';position:absolute;left:0;right:0;bottom:-6px;height:1.5px;background:#B08D57}.hd img{height:50px}.hd div{flex:1}.hd b{font-size:16px;letter-spacing:.5px;display:block}.hd span{color:#7E8790;font-size:10.5px}.hd .no{flex:none;text-align:right}.hd .no b{font-size:12px;color:#35566E}
 h1{font:700 22px Georgia,serif;text-align:center;letter-spacing:2px;margin:24px 0 2px;color:#1F3A4D}.sub{text-align:center;color:#7E8790;margin-bottom:12px}
@@ -318,7 +323,7 @@ h3{font:700 13px Georgia,serif;letter-spacing:1px;text-transform:uppercase;color
 table{width:100%;border-collapse:collapse}th,td{padding:6px 8px;border:1px solid #E4DDD0;vertical-align:top;text-align:left}.sm th{background:#35566E;color:#fff;font-weight:600}.sm tr:nth-child(even) td{background:#F8F5EF}.kv th{width:20%;background:#F3EFE8;font-weight:600;color:#4A5560}.kv td{width:30%}
 .sec{margin:10px 0;page-break-inside:avoid}.sec h4{margin:0 0 4px;font-size:12.5px;display:flex;gap:8px;align-items:center}.nt{margin-top:4px;padding:6px 8px;background:#F8F5EF;border-radius:6px;color:#4A5560}
 .pl2{display:inline-block;padding:1px 9px;border-radius:99px;font-size:10px;font-weight:700}.pl2.g{background:#E4F0E9;color:#2E6A50}.pl2.r{background:#F6E5E3;color:#8C3B3A}.pl2.a{background:#F7EEDB;color:#7C5A20}.pl2.n{background:#ECEEF0;color:#5E666D}.pl2.z{background:#F0F1F2;color:#8A9096}
-.sgs{display:flex;gap:18px;margin-top:8px;page-break-inside:avoid}.sg{flex:1;text-align:center}.sg small{display:block;color:#7E8790}.im{height:66px;display:flex;align-items:center;justify-content:center}.im img{max-height:62px;max-width:160px}.sg b{display:block;border-top:1px solid #22303C;padding-top:4px}.sg span{color:#7E8790;font-size:10px}
+.sgs{display:flex;gap:18px;margin-top:8px;page-break-inside:avoid}.sg{flex:1;text-align:center}.sg small{display:block;color:#7E8790}.im{height:66px;display:flex;align-items:center;justify-content:center}.im svg{width:64px;height:64px}.lk{font-size:8px;word-break:break-all}.sg b{display:block;border-top:1px solid #22303C;padding-top:4px}.sg span{display:block;color:#7E8790;font-size:10px}
 .ft{margin-top:20px;padding-top:8px;border-top:1px solid #E4DDD0;color:#7E8790;font-size:9.5px;display:flex;justify-content:space-between}`;
   w.document.open();w.document.write(`<!doctype html><html lang="id"><head><meta charset="utf-8"><title>Final Inspection Report - ${esc(o.Kode_Serial)}</title><style>${css}</style></head><body>
 <div class=hd><img src="${logo}"><div><b>${esc(B.cfg.nama||'PT MURINDA SENTRA BAJA')}</b><span>Quality Control Department</span></div><div class=no><span>No. Dokumen</span><b>${esc(o._id||'-')}</b></div></div>
@@ -328,7 +333,7 @@ table{width:100%;border-collapse:collapse}th,td{padding:6px 8px;border:1px solid
 <h3>Ringkasan Tahapan Inspeksi</h3><table class=sm><thead><tr><th>No</th><th>Tahap</th><th>Status</th><th>Inspector</th><th>Tanggal</th></tr></thead><tbody>${sum}</tbody></table>
 <div class=nt>N/A = tahap tidak diperlukan untuk unit ini (mis. NDT).</div>
 <h3>Detail Pemeriksaan</h3>${det}${fn?`<h3>Catatan Final</h3><div class=nt>${esc(fn)}</div>`:''}
-<h3>Pengesahan</h3><div class=sgs>${sg('Dibuat oleh (QC Inspector)',ins,ins===B.u.insp?B.u.ttd:'','Inspector')}${sg('Disetujui (QC Manager)',ap||(B.mgr&&B.mgr.u),ap&&B.mgr?B.mgr.ttd:'',ap?'Disetujui':'Menunggu persetujuan')}${sg('Diterima oleh','','','Customer / Pengiriman')}</div>
+<h3>Pengesahan</h3><div class=sgs>${sg('Dibuat oleh (QC Inspector)',ins,B.u.ttd,'Inspector',tg)}${sg('Disetujui oleh',ap||(B.mgr&&B.mgr.u),al,ap?(ast||'Disetujui'):'Menunggu persetujuan',at)}${sg('Diterima oleh','','','Customer / Pengiriman')}</div>
 <div class=ft><span>Dicetak oleh ${esc(B.u.insp)} · ${esc(tg)}</span><span>Dihasilkan otomatis oleh QC Inspector MSB</span></div>
 <script>onload=()=>setTimeout(()=>print(),700)<\/script></body></html>`);w.document.close()
  }catch(e){w.close();toast(e.message,1)}}
