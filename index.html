@@ -309,7 +309,7 @@ async function rep(o){const w=window.open('','_blank');if(!w)return toast('Izink
   info=[['Customer',o.Customer],['Kode Produk',o.Kode_Produk],['Kode Serial',o.Kode_Serial],['Kategori',o.k==='Builtup'?'Builtup':o.k?'Counterweight Excavator':'-'],['No. PO Customer',o.No_PO_Customer],['Tanggal Kirim',dfmt(o.d)],['No. Release Note',o['No Release Note']],['Tanggal Report',tg]],
   sum=st.map((x,i)=>`<tr><td>${i+1}</td><td><b>${MD[x.m.k][2]}</b></td><td>${pill(x.r.Status)}</td><td>${esc(x.r.Inspector||x.r['Inspector/NDT Personnel']||'-')}</td><td>${x.r[x.m.dt]?esc(dfmt(String(x.r[x.m.dt]).slice(0,10))):'-'}</td></tr>`).join(''),
   det=st.map((x,i)=>{const fs=x.m.f.filter(f=>!/^(Status|Inspector.*|Catatan)$/.test(f[0])&&x.r[f[0]]!==''&&x.r[f[0]]!=null);let t='';
-   for(let j=0;j<fs.length;j+=2)t+='<tr>'+[fs[j],fs[j+1]].map(f=>f?`<th>${esc(f[0])}</th><td>${esc(fv(f,x.r[f[0]]))}</td>`:'<th></th><td></td>').join('')+'</tr>';
+   fs.forEach(f=>t+=`<tr><th>${esc(f[0])}</th><td>${esc(fv(f,x.r[f[0]]))}</td></tr>`);
    const nt=x.r.Catatan&&x.r.Catatan!=='-'?`<div class=nt>Catatan: ${esc(x.r.Catatan)}</div>`:'';
    return `<div class=sec><h4>${i+1}. ${MD[x.m.k][2]} ${pill(x.r.Status)}</h4>${t?`<table class=kv>${t}</table>`:'<div class=nt>Belum ada data pemeriksaan.</div>'}${nt}</div>`}).join(''),
   ap=o['Disetujui Oleh (Nama)']||'',ast=o['Disetujui Oleh (Status)']||'',at=wk(o['Disetujui Oleh (Tanggal)']),al=ap?o['Disetujui Oleh (TTD)']||'':'',ins=B.u.insp||B.u.u,fn=o.Catatan&&o.Catatan!=='-'?o.Catatan:'',
@@ -324,18 +324,25 @@ table{width:100%;border-collapse:collapse}th,td{padding:6px 8px;border:1px solid
 .sec{margin:10px 0;page-break-inside:avoid}.sec h4{margin:0 0 4px;font-size:12.5px;display:flex;gap:8px;align-items:center}.nt{margin-top:4px;padding:6px 8px;background:#F8F5EF;border-radius:6px;color:#4A5560}
 .pl2{display:inline-block;padding:1px 9px;border-radius:99px;font-size:10px;font-weight:700}.pl2.g{background:#E4F0E9;color:#2E6A50}.pl2.r{background:#F6E5E3;color:#8C3B3A}.pl2.a{background:#F7EEDB;color:#7C5A20}.pl2.n{background:#ECEEF0;color:#5E666D}.pl2.z{background:#F0F1F2;color:#8A9096}
 .sgs{display:flex;gap:18px;margin-top:8px;page-break-inside:avoid}.sg{flex:1;text-align:center}.sg small{display:block;color:#7E8790}.im{height:66px;display:flex;align-items:center;justify-content:center}.im svg{width:64px;height:64px}.lk{font-size:8px;word-break:break-all}.sg b{display:block;border-top:1px solid #22303C;padding-top:4px}.sg span{display:block;color:#7E8790;font-size:10px}
-.ft{margin-top:20px;padding-top:8px;border-top:1px solid #E4DDD0;color:#7E8790;font-size:9.5px;display:flex;justify-content:space-between}`;
-  w.document.open();w.document.write(`<!doctype html><html lang="id"><head><meta charset="utf-8"><title>Final Inspection Report - ${esc(o.Kode_Serial)}</title><style>${css}</style></head><body>
+.ft{margin-top:20px;padding-top:8px;border-top:1px solid #E4DDD0;color:#7E8790;font-size:9.5px;display:flex;justify-content:space-between}
+@page{margin:9mm 10mm}body{font-size:10.5px;line-height:1.4}#pg{width:190mm;margin:0 auto}
+.hd{padding-bottom:8px}.hd img{height:40px}h1{font-size:18px;margin:14px 0 0}.sub{margin-bottom:6px}
+.res{padding:7px 12px;margin:8px 0}.res b{font-size:15px}h3{margin:10px 0 4px;font-size:11.5px}
+th,td{padding:3px 6px}.inf div{padding:3px 0}
+.dg{display:grid;grid-template-columns:1fr 1fr;gap:6px 12px}.dg .sec{margin:0}.kv th{width:40%}.kv td{width:60%}
+.sec h4{font-size:11px;margin:0 0 3px}.nt{padding:4px 7px;margin-top:3px}
+.im{height:60px}.im svg{width:58px;height:58px}.ft{margin-top:8px}`;
+  w.document.open();w.document.write(`<!doctype html><html lang="id"><head><meta charset="utf-8"><title>Final Inspection Report - ${esc(o.Kode_Serial)}</title><style>${css}</style></head><body><div id=pg>
 <div class=hd><img src="${logo}"><div><b>${esc(B.cfg.nama||'PT MURINDA SENTRA BAJA')}</b><span>Quality Control Department</span></div><div class=no><span>No. Dokumen</span><b>${esc(o._id||'-')}</b></div></div>
 <h1>FINAL INSPECTION REPORT</h1><div class=sub>Laporan Hasil Pemeriksaan Akhir Produk</div>
 <div class="res ${sc(hs)}"><div><small>Hasil Akhir</small><b>${esc(hs)}</b></div><div style="text-align:right"><small>Ringkasan ${st.length} tahap</small>${cn('g')} lulus · ${cn('a')} bersyarat · ${cn('r')} reject · ${cn('n')} N/A · ${cn('z')} belum</div></div>
 <h3>Informasi Produk</h3><div class=inf>${info.map(x=>`<div><span>${x[0]}</span><b>${esc(x[1]||'-')}</b></div>`).join('')}</div>
 <h3>Ringkasan Tahapan Inspeksi</h3><table class=sm><thead><tr><th>No</th><th>Tahap</th><th>Status</th><th>Inspector</th><th>Tanggal</th></tr></thead><tbody>${sum}</tbody></table>
 <div class=nt>N/A = tahap tidak diperlukan untuk unit ini (mis. NDT).</div>
-<h3>Detail Pemeriksaan</h3>${det}${fn?`<h3>Catatan Final</h3><div class=nt>${esc(fn)}</div>`:''}
+<h3>Detail Pemeriksaan</h3><div class=dg>${det}</div>${fn?`<h3>Catatan Final</h3><div class=nt>${esc(fn)}</div>`:''}
 <h3>Pengesahan</h3><div class=sgs>${sg('Dibuat oleh (QC Inspector)',ins,B.u.ttd,'Inspector',tg)}${sg('Disetujui oleh',ap||(B.mgr&&B.mgr.u),al,ap?(ast||'Disetujui'):'Menunggu persetujuan',at)}${sg('Diterima oleh','','','Customer / Pengiriman')}</div>
 <div class=ft><span>Dicetak oleh ${esc(B.u.insp)} · ${esc(tg)}</span><span>Dihasilkan otomatis oleh QC Inspector MSB</span></div>
-<script>onload=()=>setTimeout(()=>print(),700)<\/script></body></html>`);w.document.close()
+</div><script>onload=()=>setTimeout(()=>{const p=document.getElementById('pg'),H=279*96/25.4*.97,h=p.offsetHeight;if(h>H)p.style.zoom=H/h;print()},700)<\/script></body></html>`);w.document.close()
  }catch(e){w.close();toast(e.message,1)}}
 
 // ---------- Event ----------
